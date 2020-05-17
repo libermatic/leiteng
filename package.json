@@ -1,0 +1,19 @@
+{
+  "name": "leiteng",
+  "version": "0.0.1",
+  "description": "Leiteng Backend",
+  "main": "index.js",
+  "scripts": {
+    "version": "sed -i \"s/__version__.*/__version__ = \\\"$npm_package_version\\\"/\" $npm_package_name/__init__.py; sed -i \"s/__version__ = '.*';/__version__ = '$npm_package_version';/\" $npm_package_name/public/js/index.js; git add -A ."
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/libermatic/leiteng.git"
+  },
+  "author": "Libermatic",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/libermatic/leiteng/issues"
+  },
+  "homepage": "https://github.com/libermatic/leiteng#readme"
+}
