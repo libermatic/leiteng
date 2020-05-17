@@ -11,11 +11,13 @@ app_color = "grey"
 app_email = "info@libermatic.com"
 app_license = "MIT"
 
+fixture_owner = "leiteng@libermatic.com"
 fixtures = [
     {
         "doctype": "Custom Field",
-        "filters": [["fieldname", "like", "le_%"], ["dt", "in", ["Sales Order"]]],
-    }
+        "filters": {"fieldname": ("like", "le_%"), "owner": fixture_owner},
+    },
+    {"doctype": "Property Setter", "filters": {"owner": fixture_owner}},
 ]
 
 # Includes in <head>
