@@ -11,3 +11,4 @@ __pycache__
 node_modules/
 leiteng/public/node_modules
 yarn.lock
+firebase-admin-sdk.json

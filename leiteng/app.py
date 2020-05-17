@@ -3,7 +3,10 @@ import frappe
 import firebase_admin
 from firebase_admin import auth
 
-app = firebase_admin.initialize_app(name="leiteng")
+cred = firebase_admin.credentials.Certificate(
+    f"{frappe.get_app_path('leiteng')}/../firebase-admin-sdk.json"
+)
+app = firebase_admin.initialize_app(cred, name="leiteng")
 
 
 def get_decoded_token(token):
