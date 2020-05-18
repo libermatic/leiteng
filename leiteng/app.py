@@ -4,7 +4,7 @@ import firebase_admin
 from firebase_admin import auth
 
 cred = firebase_admin.credentials.Certificate(
-    f"{frappe.get_app_path('leiteng')}/../firebase-admin-sdk.json"
+    "{}/../firebase-admin-sdk.json".format(frappe.get_app_path('leiteng'))
 )
 app = firebase_admin.initialize_app(cred, name="leiteng")
 
