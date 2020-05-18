@@ -1,6 +1,6 @@
 {
   "name": "leiteng",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Leiteng Backend",
   "main": "index.js",
   "scripts": {

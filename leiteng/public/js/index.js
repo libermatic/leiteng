@@ -1,6 +1,6 @@
 import * as scripts from './scripts';
 
-const __version__ = '0.1.1';
+const __version__ = '0.1.2';
 
 frappe.provide('leiteng');
 
