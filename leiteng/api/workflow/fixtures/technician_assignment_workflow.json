@@ -1,0 +1,57 @@
+{
+  "name": "Technician Assignment Workflow",
+  "document_type": "Delivery Note",
+  "send_email_alert": 0,
+  "workflow_state_field": "workflow_state",
+  "states": [
+    {
+      "state": "Pending",
+      "style": "Info",
+      "doc_status": "0",
+      "allow_edit": "Sales User"
+    },
+    {
+      "state": "Rejected",
+      "style": "Danger",
+      "doc_status": "0",
+      "allow_edit": "Sales User",
+      "is_optional_state": 1
+    },
+    {
+      "state": "Completed",
+      "style": "Success",
+      "doc_status": "1",
+      "allow_edit": "Sales User"
+    },
+    {
+      "state": "Cancelled",
+      "style": "Danger",
+      "doc_status": "2",
+      "allow_edit": "Sales User",
+      "is_optional_state": 1
+    }
+  ],
+  "transitions": [
+    {
+      "state": "Pending",
+      "action": "Reject",
+      "next_state": "Rejected",
+      "allowed": "Sales User",
+      "allow_self_approval": 1
+    },
+    {
+      "state": "Pending",
+      "action": "Complete",
+      "next_state": "Completed",
+      "allowed": "Sales User",
+      "allow_self_approval": 1
+    },
+    {
+      "state": "Completed",
+      "action": "Reject",
+      "next_state": "Cancelled",
+      "allowed": "Sales User",
+      "allow_self_approval": 1
+    }
+  ]
+}
