@@ -11,13 +11,27 @@ app_color = "grey"
 app_email = "info@libermatic.com"
 app_license = "MIT"
 
-fixture_owner = "leiteng@libermatic.com"
 fixtures = [
     {
         "doctype": "Custom Field",
-        "filters": {"fieldname": ("like", "le_%"), "owner": fixture_owner},
+        "filters": {
+            "fieldname": ("like", "le_%"),
+            "dt": ("in", ["Customer", "Sales Partner", "Sales Order", "Delivery Note"]),
+        },
     },
-    {"doctype": "Property Setter", "filters": {"owner": fixture_owner}},
+    {
+        "doctype": "Property Setter",
+        "filters": {
+            "name": (
+                "in",
+                [
+                    "Sales Order-sales_team_section_break-hidden",
+                    "Sales Invoice-sales_partner-label",
+                    "Delivery Note-sales_partner-label",
+                ],
+            )
+        },
+    },
 ]
 
 # Includes in <head>
