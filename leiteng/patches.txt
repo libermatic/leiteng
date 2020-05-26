@@ -1,1 +1,2 @@
 leiteng.patches.v0_1.setup_technician_assigment_workflow
+leiteng.patches.v0_2.setup_sales_partner_naming_series
