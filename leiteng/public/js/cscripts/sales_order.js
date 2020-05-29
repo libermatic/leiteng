@@ -126,7 +126,11 @@ async function assign_technician(frm) {
 export default function sales_order() {
   return {
     refresh: function (frm) {
-      frm.add_custom_button('Assign Technicians', () => assign_technician(frm));
+      if (frm.doc.docstatus === 1) {
+        frm.add_custom_button('Assign Technicians', () =>
+          assign_technician(frm)
+        );
+      }
     },
   };
 }
