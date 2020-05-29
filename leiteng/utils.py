@@ -12,7 +12,7 @@ def handle_error(fn):
         del kwargs["cmd"]
         try:
             return fn(*args, **kwargs)
-        except:
-            pass
+        except Exception as e:
+            frappe.logger("leiteng").error(e)
 
     return wrapper
