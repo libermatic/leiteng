@@ -1,5 +1,5 @@
 import frappe
-from toolz import keyfilter, curry
+from toolz import keyfilter, curry, compose
 
 
 @curry
@@ -16,3 +16,6 @@ def handle_error(fn):
             frappe.logger("leiteng").error(e)
 
     return wrapper
+
+
+transform_route = compose(lambda x: x.replace("/", "__"), lambda x: x.get("route"))

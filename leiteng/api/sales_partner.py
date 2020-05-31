@@ -71,8 +71,6 @@ def create(token, partner_name, code, **kwargs):
             contact.add_phone(contact_args.get("mobile_no"), is_primary_mobile_no=True)
         contact.insert()
 
-    print([contact_args, address_args])
-
     doc = frappe.get_doc("Sales Partner", partner_id)
     doc.update(
         {
