@@ -34,6 +34,10 @@ def create(token, partner_name, code, **kwargs):
         frappe.throw(frappe._("Invalid Sign Up Code"))
 
     uid = decoded_token["uid"]
+
+    if frappe.db.exists("Sales Partner", {"le_firebase_uid": uid}):
+        frappe.throw(frappe._("Partner already registered"))
+
     address_args = pick(
         ["address_line1", "address_line2", "city", "state", "country", "pincode"],
         kwargs,
