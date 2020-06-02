@@ -216,7 +216,7 @@ def list_orders(token, page="1", page_length="10"):
             "parent",
             frappe.db.sql(
                 """
-                    SELECT parent, item_code, item_name, qty, rate, amount
+                    SELECT parent, item_code, item_name, item_group, qty, rate, amount
                     FROM `tabSales Order Item`
                     WHERE parent IN %(parents)s
                 """,
@@ -295,7 +295,10 @@ def create_order(token, **kwargs):
         {
             "delivery_time": doc.le_delivery_time,
             "items": [
-                pick(["item_code", "item_name", "qty", "rate", "amount"], x.as_dict())
+                pick(
+                    ["item_code", "item_name", "item_group", "qty", "rate", "amount"],
+                    x.as_dict(),
+                )
                 for x in doc.items
             ],
         },
