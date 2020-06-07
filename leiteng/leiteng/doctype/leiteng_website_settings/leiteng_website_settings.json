@@ -5,6 +5,7 @@
  "engine": "InnoDB",
  "field_order": [
   "user",
+  "slideshow",
   "column_break_2",
   "allcat_groups"
  ],
@@ -26,10 +27,16 @@
   {
    "fieldname": "column_break_2",
    "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "slideshow",
+   "fieldtype": "Link",
+   "label": "Slideshow",
+   "options": "Website Slideshow"
   }
  ],
  "issingle": 1,
- "modified": "2020-05-13 08:14:29.254150",
+ "modified": "2020-06-07 21:17:38.025335",
  "modified_by": "Administrator",
  "module": "Leiteng",
  "name": "Leiteng Website Settings",
