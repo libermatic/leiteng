@@ -16,7 +16,16 @@ fixtures = [
         "doctype": "Custom Field",
         "filters": {
             "fieldname": ("like", "le_%"),
-            "dt": ("in", ["Customer", "Sales Partner", "Sales Order", "Delivery Note"]),
+            "dt": (
+                "in",
+                [
+                    "Customer",
+                    "Sales Partner",
+                    "Sales Order",
+                    "Delivery Note",
+                    "Website Slideshow Item",
+                ],
+            ),
         },
     },
     {
