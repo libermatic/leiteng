@@ -13,7 +13,7 @@ from toolz.curried import (
     map,
 )
 
-from leiteng.utils import handle_error, transform_route
+from leiteng.utils import handle_error, transform_route, pick
 
 
 @frappe.whitelist(allow_guest=True)
@@ -29,20 +29,20 @@ def get_settings():
             x, {"address": frappe.utils.strip_html_tags(x.get("footer_address"))}
         ),
     )
-    allcat_groups = [
-        x.get("item_group")
-        for x in frappe.get_all(
-            "Website Item Group",
-            fields=["item_group"],
-            filters={"parent": "Leiteng Website Settings"},
-        )
-    ]
+
+    leiteng_settings = frappe.get_single("Leiteng Website Settings")
+    allcat_groups = [x.item_group for x in leiteng_settings.allcat_groups]
+    slideshow = _get_slideshow_settings(leiteng_settings)
 
     settings = get_website_settings()
 
     return merge(
         get_filters(settings),
-        {"root_groups": _get_root_groups(), "allcat_groups": allcat_groups},
+        {
+            "root_groups": _get_root_groups(),
+            "allcat_groups": allcat_groups,
+            "slideshow": slideshow,
+        },
     )
 
 
@@ -208,3 +208,46 @@ def _get_root_groups():
     )
 
     return make_unique_roots(groups)
+
+
+def _get_slideshow_settings(settings):
+    if not settings.slideshow:
+        return None
+
+    def get_route(item):
+        ref_doctype, ref_name = item.get("le_ref_doctype"), item.get("le_ref_docname")
+        if ref_doctype and ref_name:
+            route, show_in__website = frappe.get_cached_value(
+                ref_doctype, ref_name, ["route", "show_in_website"]
+            )
+            if route and show_in__website:
+                if ref_doctype == "Item Group":
+                    return transform_route({"route": route})
+                if ref_doctype == "Item":
+                    item_group = frappe.get_cached_value("Item", ref_name, "item_group")
+                    group_route, show_in__website = frappe.get_cached_value(
+                        "Item Group", item_group, ["route", "show_in_website"],
+                    )
+                    if group_route and show_in__website:
+                        return "/".join(
+                            [
+                                transform_route({"route": group_route}),
+                                transform_route({"route": route}),
+                            ]
+                        )
+        return None
+
+    return [
+        merge(pick(["image", "heading", "description"], x), {"route": get_route(x)})
+        for x in frappe.get_all(
+            "Website Slideshow Item",
+            filters={"parent": settings.slideshow},
+            fields=[
+                "image",
+                "heading",
+                "description",
+                "le_ref_doctype",
+                "le_ref_docname",
+            ],
+        )
+    ]
