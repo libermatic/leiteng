@@ -40,6 +40,13 @@
       "allow_self_approval": 1
     },
     {
+      "state": "Rejected",
+      "action": "Reassign",
+      "next_state": "Pending",
+      "allowed": "Sales Manager",
+      "allow_self_approval": 1
+    },
+    {
       "state": "Pending",
       "action": "Complete",
       "next_state": "Completed",
@@ -50,7 +57,7 @@
       "state": "Completed",
       "action": "Reject",
       "next_state": "Cancelled",
-      "allowed": "Sales User",
+      "allowed": "Sales Manager",
       "allow_self_approval": 1
     }
   ]

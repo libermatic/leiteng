@@ -38,15 +38,25 @@ def setup_workflow(name):
     if not args:
         frappe.throw(frappe._("Unable to setup workflow {}".format(frappe.bold(name))))
 
-    for action in unique([x.get("action") for x in args.get("transitions")]):
-        make_action(action)
-    for state in args.get("states"):
-        make_state(state.get("state"), state.get("style"))
-        make_role(state.get("allow_edit"))
+    def make_workflow():
+        for action in unique([x.get("action") for x in args.get("transitions")]):
+            make_action(action)
+        for state in args.get("states"):
+            make_state(state.get("state"), state.get("style"))
+            make_role(state.get("allow_edit"))
 
-    return frappe.get_doc(
-        merge({"doctype": "Workflow", "workflow_name": args.get("name")}, args)
-    ).insert(ignore_permissions=True)
+        if not frappe.db.exists("Workflow", name):
+            doc = frappe.get_doc(
+                merge({"doctype": "Workflow", "workflow_name": name}, args)
+            ).insert(ignore_permissions=True)
+            return doc
+        else:
+            doc = frappe.get_doc("Workflow", args.get("name"))
+            doc.update(args)
+            doc.save(ignore_permissions=True)
+            return doc
+
+    return make_workflow()
 
 
 def _get_workflow_config(name):
