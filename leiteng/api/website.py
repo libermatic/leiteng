@@ -79,6 +79,7 @@ def get_all_item_groups():
 def get_items(page="1", field_filters=None, attribute_filters=None, search=None):
     from erpnext.portal.product_configurator.utils import get_products_for_website
     from erpnext.accounts.doctype.sales_invoice.pos import get_child_nodes
+    from erpnext.utilities.product import get_price
 
     other_fieldnames = ["item_group", "thumbnail"]
     price_list = frappe.db.get_single_value("Shopping Cart Settings", "price_list")
@@ -159,6 +160,22 @@ def get_items(page="1", field_filters=None, attribute_filters=None, search=None)
     other_fields = get_other_fields(items) if items else {}
     item_prices = get_item_prices(items) if items else {}
 
+    def get_rates(item_code):
+        price_obj = get_price(
+            item_code,
+            price_list,
+            customer_group=frappe.get_cached_value(
+                "Selling Settings", None, "customer_group"
+            ),
+            company=frappe.defaults.get_global_default("company"),
+        )
+        price_list_rate = item_prices.get(item_code, {}).get("price_list_rate")
+        item_price = price_obj.get("price_list_rate") or price_list_rate
+        return {
+            "price_list_rate": item_price,
+            "slashed_rate": price_list_rate if price_list_rate != item_price else None,
+        }
+
     return {
         "page_count": get_page_count(item_groups),
         "items": [
@@ -172,10 +189,8 @@ def get_items(page="1", field_filters=None, attribute_filters=None, search=None)
                     "web_long_description": frappe.utils.strip_html_tags(
                         x.get("web_long_description") or ""
                     ),
-                    "price_list_rate": item_prices.get(x.get("name"), {}).get(
-                        "price_list_rate"
-                    ),
                 },
+                get_rates(x.get("name")),
                 {
                     k: other_fields.get(x.get("name"), {}).get(k)
                     for k in other_fieldnames
