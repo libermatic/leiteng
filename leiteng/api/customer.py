@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import frappe
 import json
-from toolz import keyfilter, merge, compose, groupby
+from toolz.curried import keyfilter, merge, compose, groupby, map, filter
 
 from leiteng.app import get_decoded_token, auth
 from leiteng.utils import pick, handle_error
@@ -179,7 +179,7 @@ def delete_address(token, name):
 
 @frappe.whitelist(allow_guest=True)
 @handle_error
-def list_orders(token, page="1", page_length="10"):
+def list_orders(token, page="1", page_length="10", status=None):
     decoded_token = get_decoded_token(token)
     customer_id = frappe.db.exists(
         "Customer", {"le_firebase_uid": decoded_token["uid"]}
@@ -187,25 +187,43 @@ def list_orders(token, page="1", page_length="10"):
     if not customer_id:
         frappe.throw(frappe._("Customer does not exist on backend"))
 
+    get_conditions = compose(lambda x: " AND ".join(x), filter(None))
+    conditions = get_conditions(
+        [
+            "docstatus = 1",
+            "customer = %(customer)s",
+            "status IN %(statuses)s" if status else None,
+        ]
+    )
+
+    statuses = json.loads(status) if status else None
+
     get_count = compose(
         lambda x: x[0][0],
         lambda x: frappe.db.sql(
             """
-                SELECT COUNT(name) FROM `tabSales Order` WHERE customer = %(customer)s
-            """,
-            values={"customer": x},
+                SELECT COUNT(name) FROM `tabSales Order`
+                WHERE {conditions}
+            """.format(
+                conditions=conditions
+            ),
+            values={"customer": x, "statuses": statuses},
         ),
     )
 
     orders = frappe.db.sql(
         """
             SELECT name, transaction_date, rounded_total, status
-            FROM `tabSales Order` WHERE customer = %(customer)s
+            FROM `tabSales Order`
+            WHERE {conditions}
             ORDER BY transaction_date DESC, creation DESC
             LIMIT %(start)s, %(page_length)s
-        """,
+        """.format(
+            conditions=conditions
+        ),
         values={
             "customer": customer_id,
+            "statuses": statuses,
             "start": (frappe.utils.cint(page) - 1) * frappe.utils.cint(page_length),
             "page_length": frappe.utils.cint(page_length),
         },
