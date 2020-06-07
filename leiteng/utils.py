@@ -3,7 +3,7 @@ from toolz import keyfilter, curry, compose
 
 
 @curry
-def pick(whitelist, d):
+def pick(whitelist, d=None):
     return keyfilter(lambda k: k in whitelist, d)
 
 
