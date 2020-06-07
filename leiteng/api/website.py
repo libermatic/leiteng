@@ -21,7 +21,7 @@ def get_settings():
     )
 
     get_filters = compose(
-        pick(["copyright", "address"]),
+        lambda x: pick(["copyright", "address"], x),
         lambda x: merge(
             x, {"address": frappe.utils.strip_html_tags(x.get("footer_address"))}
         ),
