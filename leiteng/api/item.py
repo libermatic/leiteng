@@ -14,10 +14,11 @@ from toolz.curried import (
     filter,
 )
 from erpnext.portal.product_configurator.utils import get_products_for_website
+from erpnext.shopping_cart.product_info import get_product_info_for_website
 from erpnext.accounts.doctype.sales_invoice.pos import get_child_nodes
 from erpnext.utilities.product import get_price
 
-from leiteng.utils import handle_error, transform_route
+from leiteng.utils import handle_error, transform_route, pick
 
 
 @frappe.whitelist(allow_guest=True)
@@ -29,42 +30,33 @@ def get_item(route):
     if not item_code:
         frappe.throw(frappe._("Item does not exist at this route"))
 
-    price_list = frappe.db.get_single_value("Shopping Cart Settings", "price_list")
-
-    def get_rates(item_code):
-        price_obj = get_price(
-            item_code,
-            price_list,
-            customer_group=frappe.get_cached_value(
-                "Selling Settings", None, "customer_group"
-            ),
-            company=frappe.defaults.get_global_default("company"),
-        )
-        price_list_rate = frappe.db.get_value(
-            "Item Price",
-            filters={"item_code": item_code, "price_list": price_list},
-            fieldname="price_list_rate",
-        )
-        item_price = price_obj.get("price_list_rate") or price_list_rate
-        return {
-            "price_list_rate": item_price,
-            "slashed_rate": price_list_rate if price_list_rate != item_price else None,
-        }
-
     doc = frappe.db.get_value(
         "Item",
         item_code,
         fieldname=[
             "name",
             "item_name",
+            "item_group",
+            "has_variants",
             "description",
             "web_long_description",
             "image",
             "website_image",
-            "item_group",
         ],
         as_dict=1,
     )
+
+    get_price_list_rate = compose(
+        lambda x: frappe.db.get_value(
+            "Item Price",
+            filters={"item_code": item_code, "price_list": x},
+            fieldname="price_list_rate",
+        )
+        if x
+        else None,
+        lambda: frappe.get_cached_value("Shopping Cart Settings", None, "price_list"),
+    )
+
     return merge(
         {"route": route},
         doc,
@@ -73,9 +65,27 @@ def get_item(route):
             "web_long_description": frappe.utils.strip_html_tags(
                 doc.get("web_long_description") or ""
             ),
+            "price_list_rate": get_price_list_rate(),
         },
-        get_rates(doc.get("name")),
     )
+
+
+@frappe.whitelist(allow_guest=True)
+@handle_error
+def get_product_info(route):
+    item_code = frappe.db.exists(
+        "Item", {"route": route.replace("__", "/"), "show_in_website": 1}
+    )
+    if not item_code:
+        frappe.throw(frappe._("Item does not exist at this route"))
+
+    item_for_website = get_product_info_for_website(item_code)
+    return {
+        "price": pick(
+            ["currency", "price_list_rate"],
+            item_for_website.get("product_info", {}).get("price", {}),
+        )
+    }
 
 
 @frappe.whitelist(allow_guest=True)
