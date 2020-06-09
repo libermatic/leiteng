@@ -90,6 +90,20 @@ def get_product_info(route):
 
 @frappe.whitelist(allow_guest=True)
 @handle_error
+def get_related_items(route):
+    item_code = frappe.db.exists(
+        "Item", {"route": route.replace("__", "/"), "show_in_website": 1}
+    )
+    if not item_code:
+        frappe.throw(frappe._("Item does not exist at this route"))
+
+    item_group = frappe.get_cached_value("Item", item_code, "item_group")
+    result = get_items(field_filters={"item_group": [item_group]})
+    return [x for x in result.get("items") if x.get("name") != item_code]
+
+
+@frappe.whitelist(allow_guest=True)
+@handle_error
 def get_items(page="1", field_filters=None, attribute_filters=None, search=None):
     other_fieldnames = ["item_group", "thumbnail"]
     price_list = frappe.db.get_single_value("Shopping Cart Settings", "price_list")
@@ -152,7 +166,11 @@ def get_items(page="1", field_filters=None, attribute_filters=None, search=None)
         ),
     )
 
-    field_dict = frappe.parse_json(field_filters)
+    field_dict = (
+        frappe.parse_json(field_filters)
+        if isinstance(field_filters, str)
+        else field_filters
+    )
     item_groups = (
         get_item_groups(field_dict.get("item_group"))
         if field_dict.get("item_group")
