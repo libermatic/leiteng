@@ -105,7 +105,7 @@ def get_related_items(route):
 @frappe.whitelist(allow_guest=True)
 @handle_error
 def get_items(page="1", field_filters=None, attribute_filters=None, search=None):
-    other_fieldnames = ["item_group", "thumbnail"]
+    other_fieldnames = ["item_group", "thumbnail", "has_variants"]
     price_list = frappe.db.get_single_value("Shopping Cart Settings", "price_list")
     products_per_page = frappe.db.get_single_value(
         "Products Settings", "products_per_page"
