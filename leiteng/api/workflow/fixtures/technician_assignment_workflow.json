@@ -34,7 +34,7 @@
   "transitions": [
     {
       "state": "Pending",
-      "action": "Reject",
+      "action": "Cancel",
       "next_state": "Rejected",
       "allowed": "Sales User",
       "allow_self_approval": 1
@@ -55,7 +55,7 @@
     },
     {
       "state": "Completed",
-      "action": "Reject",
+      "action": "Cancel",
       "next_state": "Cancelled",
       "allowed": "Sales Manager",
       "allow_self_approval": 1
