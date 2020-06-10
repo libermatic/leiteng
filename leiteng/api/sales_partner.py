@@ -129,9 +129,9 @@ def get_job_list(token, page="1", page_length="10", status=None):
     get_conditions = compose(lambda x: " AND ".join(x), filter(None))
     conditions = get_conditions(
         [
-            "docstatus < 2",
-            "sales_partner = %(sales_partner)s",
-            "workflow_state = %(workflow_state)s" if status else None,
+            "dn.docstatus < 2",
+            "dn.sales_partner = %(sales_partner)s",
+            "dn.workflow_state = %(workflow_state)s" if status else None,
         ]
     )
 
@@ -139,7 +139,7 @@ def get_job_list(token, page="1", page_length="10", status=None):
         lambda x: x[0][0],
         lambda x: frappe.db.sql(
             """
-                SELECT COUNT(name) FROM `tabDelivery Note`
+                SELECT COUNT(dn.name) FROM `tabDelivery Note` AS dn
                 WHERE {conditions}
             """.format(
                 conditions=conditions
@@ -151,18 +151,22 @@ def get_job_list(token, page="1", page_length="10", status=None):
     delivery_notes = frappe.db.sql(
         """
             SELECT
-                name,
-                le_scheduled_datetime AS scheduled_datetime,
-                TIMESTAMP(posting_date, posting_time) AS posting_datetime,
-                customer,
-                customer_name,
-                shipping_address_name,
-                customer_address,
-                rounded_total AS total,
-                workflow_state AS status
-            FROM `tabDelivery Note`
+                dn.name,
+                dn.le_scheduled_datetime AS scheduled_datetime,
+                TIMESTAMP(dn.posting_date, dn.posting_time) AS posting_datetime,
+                dn.customer,
+                dn.customer_name,
+                dn.shipping_address_name,
+                dn.customer_address,
+                dni.against_sales_order AS order_name,
+                dn.rounded_total AS total,
+                dn.workflow_state AS status
+            FROM `tabDelivery Note` AS dn
+            LEFT JOIN `tabDelivery Note Item` AS dni ON
+                dni.parent = dn.name
             WHERE {conditions}
-            ORDER BY le_scheduled_datetime DESC, creation DESC
+            GROUP BY dn.name
+            ORDER BY dn.le_scheduled_datetime DESC, dn.creation DESC
             LIMIT %(start)s, %(page_length)s
         """.format(
             conditions=conditions
@@ -228,6 +232,7 @@ def get_job_list(token, page="1", page_length="10", status=None):
                         "name",
                         "customer",
                         "customer_name",
+                        "order_name",
                         "posting_datetime",
                         "scheduled_datetime",
                         "total",
