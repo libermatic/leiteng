@@ -11,17 +11,8 @@ def validate(doc, methods):
 
 
 def on_submit(doc, method):
-    if _get_order_type(doc) == "Shopping Cart":
+    if doc.le_auto_invoice:
         _create_sales_invoice(doc)
-
-
-def _get_order_type(doc):
-    order_name = doc.items[0].against_sales_order
-    return (
-        frappe.db.get_value("Sales Order", order_name, "order_type")
-        if order_name
-        else None
-    )
 
 
 def _create_sales_invoice(doc):

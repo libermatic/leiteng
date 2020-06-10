@@ -63,6 +63,7 @@ def assign_technicians(doc_name, items_str):
             "Sales Partner", key[0], "commission_rate"
         )
         dn.le_scheduled_datetime = key[1]
+        dn.le_auto_invoice = 1
         for item in items_by_sales_partner[key]:
             so_item = frappe.get_cached_doc("Sales Order Item", item.get("so_detail"))
             frappe.model.mapper.map_child_doc(so_item, dn, item_table_mapper)
