@@ -274,7 +274,7 @@ def create_order(token, **kwargs):
             {
                 "doctype": "Sales Order",
                 "customer": customer_id,
-                "order_type": "Sales",
+                "order_type": "Shopping Cart",
                 "company": frappe.defaults.get_user_default("company"),
                 "currency": frappe.defaults.get_user_default("currency"),
                 "selling_price_list": frappe.db.get_single_value(
