@@ -112,7 +112,11 @@ app_include_js = "/assets/js/leiteng.min.js"
 # Hook on document methods and events
 
 doc_events = {
-    "Sales Partner": {"autoname": "leiteng.doc_events.sales_partner.autoname"}
+    "Sales Partner": {"autoname": "leiteng.doc_events.sales_partner.autoname"},
+    "Delivery Note": {
+        "validate": "leiteng.doc_events.delivery_note.validate",
+        "on_submit": "leiteng.doc_events.delivery_note.on_submit",
+    },
 }
 
 # Scheduled Tasks
