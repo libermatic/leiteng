@@ -1,7 +1,17 @@
 # -*- coding: utf-8 -*-
 import frappe
 import json
-from toolz.curried import keyfilter, merge, compose, groupby, map, filter
+from toolz.curried import (
+    keyfilter,
+    merge,
+    compose,
+    groupby,
+    concat,
+    first,
+    valmap,
+    map,
+    filter,
+)
 
 from leiteng.app import get_decoded_token, auth
 from leiteng.utils import pick, handle_error
@@ -234,7 +244,7 @@ def list_orders(token, page="1", page_length="10", status=None):
             "parent",
             frappe.db.sql(
                 """
-                    SELECT parent, item_code, item_name, item_group, qty, rate, amount
+                    SELECT parent, name, item_code, item_name, item_group, qty, rate, amount
                     FROM `tabSales Order Item`
                     WHERE parent IN %(parents)s
                 """,
@@ -245,10 +255,95 @@ def list_orders(token, page="1", page_length="10", status=None):
         if orders
         else {}
     )
+
     return {
         "count": get_count(customer_id),
         "items": [merge(x, {"items": items.get(x.get("name"), [])}) for x in orders],
     }
+
+
+@frappe.whitelist(allow_guest=True)
+@handle_error
+def get_notes(token, so_name):
+    decoded_token = get_decoded_token(token)
+    customer_id = frappe.db.exists(
+        "Customer", {"le_firebase_uid": decoded_token["uid"]}
+    )
+    if not customer_id:
+        frappe.throw(frappe._("Customer does not exist on backend"))
+
+    if customer_id != frappe.db.get_value("Sales Order", so_name, "customer"):
+        frappe.throw(frappe._("Not allowed to view this document"))
+
+    get_dn_fields = compose(
+        keyfilter(
+            lambda x: x
+            in [
+                "name",
+                "partner",
+                "partner_name",
+                "scheduled_datetime",
+                "posting_datetime",
+                "rounded_total",
+                "status",
+            ]
+        ),
+        first,
+    )
+    get_item_fields = compose(
+        list,
+        map(
+            keyfilter(
+                lambda x: x
+                in [
+                    "name",
+                    "item_code",
+                    "item_name",
+                    "item_group",
+                    "rate",
+                    "amount",
+                    "so_detail",
+                ]
+            )
+        ),
+        map(lambda x: merge(x, {"name": x.get("child_name")})),
+    )
+
+    get_deliveries = compose(
+        lambda x: x.values(),
+        valmap(lambda x: merge(get_dn_fields(x), {"items": get_item_fields(x)})),
+        groupby("name"),
+        lambda x: frappe.db.sql(
+            """
+                SELECT
+                    dn.name,
+                    dn.sales_partner AS partner,
+                    sp.partner_name,
+                    dn.le_scheduled_datetime AS scheduled_datetime,
+                    TIMESTAMP(dn.posting_date, dn.posting_time) AS posting_datetime,
+                    dn.rounded_total,
+                    dn.workflow_state AS status,
+                    dni.name AS child_name,
+                    dni.item_code,
+                    dni.item_name,
+                    dni.item_group,
+                    dni.qty,
+                    dni.rate,
+                    dni.amount,
+                    dni.so_detail
+                FROM `tabDelivery Note Item` AS dni
+                LEFT JOIN `tabDelivery Note` AS dn ON dn.name = dni.parent
+                LEFT JOIN `tabSales Partner` AS sp ON sp.name = dn.sales_partner
+                WHERE
+                    dn.status < 2 AND
+                    dn.workflow_state IN ('Pending', 'Completed') AND
+                    dni.against_sales_order = %(against_sales_order)s
+            """,
+            values={"against_sales_order": x},
+            as_dict=1,
+        ),
+    )
+    return get_deliveries(so_name)
 
 
 @frappe.whitelist(allow_guest=True)
