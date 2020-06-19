@@ -62,9 +62,6 @@ def get_item(route):
         doc,
         {
             "description": frappe.utils.strip_html_tags(doc.get("description") or ""),
-            "web_long_description": frappe.utils.strip_html_tags(
-                doc.get("web_long_description") or ""
-            ),
             "price_list_rate": get_price_list_rate(),
         },
     )
@@ -213,9 +210,6 @@ def get_items(page="1", field_filters=None, attribute_filters=None, search=None)
                     "route": transform_route(x),
                     "description": frappe.utils.strip_html_tags(
                         x.get("description") or ""
-                    ),
-                    "web_long_description": frappe.utils.strip_html_tags(
-                        x.get("web_long_description") or ""
                     ),
                 },
                 get_rates(x.get("name")),
