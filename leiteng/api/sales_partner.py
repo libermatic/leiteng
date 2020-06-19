@@ -285,3 +285,35 @@ def act_on_job(token, note_name, action, posting_datetime=None):
         pick(["name", "posting_date", "posting_time"], doc.as_dict()),
         {"status": doc.workflow_state},
     )
+
+
+@frappe.whitelist(allow_guest=True)
+@handle_error
+def create_messaging_registration(token, registration_token):
+    partner_id = _get_partner_id(token)
+
+    session_user = frappe.session.user
+    settings = frappe.get_single("Leiteng Website Settings")
+    if not settings.user:
+        frappe.throw(frappe._("Site setup not complete"))
+    frappe.set_user(settings.user)
+
+    frappe.db.set_value("Sales Partner", partner_id, "le_fcm_token", registration_token)
+
+    frappe.set_user(session_user)
+
+
+@frappe.whitelist(allow_guest=True)
+@handle_error
+def remove_messaging_registration(token):
+    create_messaging_registration(token, None)
+
+
+def _get_partner_id(token):
+    decoded_token = get_decoded_token(token)
+    partner_id = frappe.db.exists(
+        "Sales Partner", {"le_firebase_uid": decoded_token["uid"]}
+    )
+    if not partner_id:
+        frappe.throw(frappe._("Sales Partner does not exist on backend"))
+    return partner_id
