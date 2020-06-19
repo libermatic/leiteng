@@ -7,7 +7,11 @@
   "user",
   "slideshow",
   "column_break_2",
-  "allcat_groups"
+  "allcat_groups",
+  "legal_sec",
+  "privacy",
+  "column_break_7",
+  "terms"
  ],
  "fields": [
   {
@@ -33,10 +37,31 @@
    "fieldtype": "Link",
    "label": "Slideshow",
    "options": "Website Slideshow"
+  },
+  {
+   "fieldname": "legal_sec",
+   "fieldtype": "Section Break",
+   "label": "Legal"
+  },
+  {
+   "fieldname": "privacy",
+   "fieldtype": "Link",
+   "label": "Privacy Policy",
+   "options": "Terms and Conditions"
+  },
+  {
+   "fieldname": "terms",
+   "fieldtype": "Link",
+   "label": "Terms and Conditions",
+   "options": "Terms and Conditions"
+  },
+  {
+   "fieldname": "column_break_7",
+   "fieldtype": "Column Break"
   }
  ],
  "issingle": 1,
- "modified": "2020-06-07 21:17:38.025335",
+ "modified": "2020-06-19 14:22:44.910356",
  "modified_by": "Administrator",
  "module": "Leiteng",
  "name": "Leiteng Website Settings",

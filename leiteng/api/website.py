@@ -39,6 +39,8 @@ def get_settings():
             "root_groups": _get_root_groups(),
             "allcat_groups": allcat_groups,
             "slideshow": slideshow,
+            "privacy": bool(leiteng_settings.privacy),
+            "terms": bool(leiteng_settings.terms),
         },
     )
 
@@ -69,6 +71,20 @@ def get_all_item_groups():
         )
         for x in groups
     ]
+
+
+@frappe.whitelist(allow_guest=True)
+@handle_error
+def get_legal_doc(content_type):
+    get_content = compose(
+        lambda x: frappe.get_cached_value("Terms and Conditions", x, "terms"),
+        lambda x: frappe.get_cached_value("Leiteng Website Settings", None, x),
+    )
+
+    if content_type in ["privacy", "terms"]:
+        return get_content(content_type)
+
+    return None
 
 
 def _get_root_groups():
