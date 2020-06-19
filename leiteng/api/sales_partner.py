@@ -16,7 +16,10 @@ def get(token):
     if not partner_id:
         return None
     doc = frappe.get_doc("Sales Partner", partner_id)
-    return pick(["name", "sales_partner_name"], doc.as_dict())
+    return merge(
+        pick(["name", "sales_partner_name"], doc.as_dict()),
+        {"can_register_messaging": True},
+    )
 
 
 @frappe.whitelist(allow_guest=True)

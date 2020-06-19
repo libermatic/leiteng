@@ -27,7 +27,11 @@ def get(token):
     if not customer_id:
         return None
     doc = frappe.get_doc("Customer", customer_id)
-    return pick(["name", "customer_name"], doc.as_dict())
+    orders = frappe.db.exists("Sales Order", {"customer": customer_id})
+    return merge(
+        pick(["name", "customer_name"], doc.as_dict()),
+        {"can_register_messaging": bool(orders)},
+    )
 
 
 @frappe.whitelist(allow_guest=True)
@@ -416,3 +420,35 @@ def create_order(token, **kwargs):
             ],
         },
     )
+
+
+@frappe.whitelist(allow_guest=True)
+@handle_error
+def create_messaging_registration(token, registration_token):
+    customer_id = _get_customer_id(token)
+
+    session_user = frappe.session.user
+    settings = frappe.get_single("Leiteng Website Settings")
+    if not settings.user:
+        frappe.throw(frappe._("Site setup not complete"))
+    frappe.set_user(settings.user)
+
+    frappe.db.set_value("Customer", customer_id, "le_fcm_token", registration_token)
+
+    frappe.set_user(session_user)
+
+
+@frappe.whitelist(allow_guest=True)
+@handle_error
+def remove_messaging_registration(token):
+    create_messaging_registration(token, None)
+
+
+def _get_customer_id(token):
+    decoded_token = get_decoded_token(token)
+    customer_id = frappe.db.exists(
+        "Customer", {"le_firebase_uid": decoded_token["uid"]}
+    )
+    if not customer_id:
+        frappe.throw(frappe._("Customer does not exist on backend"))
+    return customer_id
