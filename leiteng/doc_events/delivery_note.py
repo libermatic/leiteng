@@ -84,6 +84,7 @@ def _send_partner_assignment(doc):
 
     get_address = compose(
         json.dumps,
+        list,
         filter(None),
         excepts(
             frappe.DoesNotExistError,
