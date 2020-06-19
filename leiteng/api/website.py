@@ -20,13 +20,6 @@ def get_settings():
         get_website_settings,
     )
 
-    get_filters = compose(
-        lambda x: pick(["copyright", "address"], x),
-        lambda x: merge(
-            x, {"address": frappe.utils.strip_html_tags(x.get("footer_address"))}
-        ),
-    )
-
     leiteng_settings = frappe.get_single("Leiteng Website Settings")
     allcat_groups = [x.item_group for x in leiteng_settings.allcat_groups]
     slideshow = _get_slideshow_settings(leiteng_settings)
@@ -34,13 +27,15 @@ def get_settings():
     settings = get_website_settings()
 
     return merge(
-        get_filters(settings),
+        pick(["copyright", "footer_address"], settings),
         {
             "root_groups": _get_root_groups(),
             "allcat_groups": allcat_groups,
             "slideshow": slideshow,
             "privacy": bool(leiteng_settings.privacy),
             "terms": bool(leiteng_settings.terms),
+            "show_about_us": bool(leiteng_settings.show_about_us),
+            "hide_build_info": bool(leiteng_settings.hide_build_info),
         },
     )
 
@@ -61,16 +56,7 @@ def get_all_item_groups():
         ],
         order_by="lft, rgt",
     )
-    return [
-        merge(
-            x,
-            {
-                "route": transform_route(x),
-                "description": frappe.utils.strip_html_tags(x.get("description") or ""),
-            },
-        )
-        for x in groups
-    ]
+    return [merge(x, {"route": transform_route(x)},) for x in groups]
 
 
 @frappe.whitelist(allow_guest=True)
@@ -85,6 +71,13 @@ def get_legal_doc(content_type):
         return get_content(content_type)
 
     return None
+
+
+@frappe.whitelist(allow_guest=True)
+@handle_error
+def get_about_us():
+    about = frappe.get_cached_doc("About Us Settings")
+    return pick(["company_introduction"], about.as_dict())
 
 
 def _get_root_groups():

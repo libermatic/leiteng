@@ -8,9 +8,11 @@
   "slideshow",
   "column_break_2",
   "allcat_groups",
-  "legal_sec",
-  "privacy",
+  "footer_sec",
+  "show_about_us",
+  "hide_build_info",
   "column_break_7",
+  "privacy",
   "terms"
  ],
  "fields": [
@@ -39,11 +41,6 @@
    "options": "Website Slideshow"
   },
   {
-   "fieldname": "legal_sec",
-   "fieldtype": "Section Break",
-   "label": "Legal"
-  },
-  {
    "fieldname": "privacy",
    "fieldtype": "Link",
    "label": "Privacy Policy",
@@ -57,11 +54,29 @@
   },
   {
    "fieldname": "column_break_7",
-   "fieldtype": "Column Break"
+   "fieldtype": "Column Break",
+   "label": "Legal"
+  },
+  {
+   "fieldname": "footer_sec",
+   "fieldtype": "Section Break",
+   "label": "Footer"
+  },
+  {
+   "default": "0",
+   "fieldname": "show_about_us",
+   "fieldtype": "Check",
+   "label": "Show About Us"
+  },
+  {
+   "default": "0",
+   "fieldname": "hide_build_info",
+   "fieldtype": "Check",
+   "label": "Hide Build Info"
   }
  ],
  "issingle": 1,
- "modified": "2020-06-19 14:22:44.910356",
+ "modified": "2020-06-20 01:08:41.097204",
  "modified_by": "Administrator",
  "module": "Leiteng",
  "name": "Leiteng Website Settings",
