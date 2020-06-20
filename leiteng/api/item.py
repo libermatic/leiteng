@@ -147,7 +147,7 @@ def get_items(page="1", field_filters=None, attribute_filters=None, search=None)
         frappe.parse_json(field_filters)
         if isinstance(field_filters, str)
         else field_filters
-    )
+    ) or {}
     item_groups = (
         get_item_groups(field_dict.get("item_group"))
         if field_dict.get("item_group")
@@ -250,13 +250,16 @@ _get_item_prices = compose(
 
 def _rate_getter(price_list, item_prices):
     def fn(item_code):
-        price_obj = get_price(
-            item_code,
-            price_list,
-            customer_group=frappe.get_cached_value(
-                "Selling Settings", None, "customer_group"
-            ),
-            company=frappe.defaults.get_global_default("company"),
+        price_obj = (
+            get_price(
+                item_code,
+                price_list,
+                customer_group=frappe.get_cached_value(
+                    "Selling Settings", None, "customer_group"
+                ),
+                company=frappe.defaults.get_global_default("company"),
+            )
+            or {}
         )
         price_list_rate = item_prices.get(item_code, {}).get("price_list_rate")
         item_price = price_obj.get("price_list_rate") or price_list_rate
