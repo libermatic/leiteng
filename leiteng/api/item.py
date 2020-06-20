@@ -154,7 +154,7 @@ def get_items(page="1", field_filters=None, attribute_filters=None, search=None)
         else None
     )
 
-    frappe.form_dict.start = (frappe.utils.cint(page) - 1) * products_per_page + 1
+    frappe.form_dict.start = (frappe.utils.cint(page) - 1) * products_per_page
     items = get_products_for_website(
         field_filters=merge(
             field_dict, {"item_group": item_groups} if item_groups else {}
