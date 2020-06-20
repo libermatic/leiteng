@@ -112,7 +112,7 @@ def get_items(page="1", field_filters=None, attribute_filters=None, search=None)
         unique,
         map(lambda x: x.get("name")),
         concat,
-        map(lambda x: get_child_nodes("Item Group", x)),
+        map(lambda x: get_child_nodes("Item Group", x) if x else []),
     )
     get_other_fields = compose(
         valmap(excepts(StopIteration, first, lambda _: {})),
@@ -129,26 +129,6 @@ def get_items(page="1", field_filters=None, attribute_filters=None, search=None)
             as_dict=1,
         ),
         lambda items: [x.get("name") for x in items],
-    )
-    get_item_prices = (
-        compose(
-            valmap(excepts(StopIteration, first, lambda _: {})),
-            groupby("item_code"),
-            lambda item_codes: frappe.db.sql(
-                """
-                    SELECT item_code, price_list_rate
-                    FROM `tabItem Price`
-                    WHERE price_list = %(price_list)s AND item_code IN %(item_codes)s
-                """.format(
-                    other_fieldnames=", ".join(other_fieldnames)
-                ),
-                values={"price_list": price_list, "item_codes": item_codes},
-                as_dict=1,
-            ),
-            lambda items: [x.get("name") for x in items],
-        )
-        if price_list
-        else lambda _: {}
     )
 
     get_page_count = compose(
@@ -183,26 +163,12 @@ def get_items(page="1", field_filters=None, attribute_filters=None, search=None)
         search=search,
     )
     other_fields = get_other_fields(items) if items else {}
-    item_prices = get_item_prices(items) if items else {}
+    item_prices = _get_item_prices(price_list, items) if items else {}
 
-    def get_rates(item_code):
-        price_obj = get_price(
-            item_code,
-            price_list,
-            customer_group=frappe.get_cached_value(
-                "Selling Settings", None, "customer_group"
-            ),
-            company=frappe.defaults.get_global_default("company"),
-        )
-        price_list_rate = item_prices.get(item_code, {}).get("price_list_rate")
-        item_price = price_obj.get("price_list_rate") or price_list_rate
-        return {
-            "price_list_rate": item_price,
-            "slashed_rate": price_list_rate if price_list_rate != item_price else None,
-        }
+    get_rates = _rate_getter(price_list, item_prices)
 
     return {
-        "page_count": get_page_count(item_groups),
+        "page_count": get_page_count(item_groups) if item_groups else 0,
         "items": [
             merge(
                 x,
@@ -221,3 +187,82 @@ def get_items(page="1", field_filters=None, attribute_filters=None, search=None)
             for x in items
         ],
     }
+
+
+@frappe.whitelist(allow_guest=True)
+@handle_error
+def get_recent_additions():
+    price_list = frappe.db.get_single_value("Shopping Cart Settings", "price_list")
+    products_per_page = frappe.db.get_single_value(
+        "Products Settings", "products_per_page"
+    )
+
+    items = frappe.db.sql(
+        """
+            SELECT
+                name, item_name, item_group, route, has_variants,
+                thumbnail, image, website_image,
+                description, web_long_description
+            FROM `tabItem`
+            WHERE show_in_website = 1
+            ORDER BY modified DESC
+            LIMIT %(products_per_page)s
+        """,
+        values={"products_per_page": products_per_page},
+        as_dict=1,
+    )
+    item_prices = _get_item_prices(price_list, items) if items else {}
+    get_rates = _rate_getter(price_list, item_prices)
+
+    return {
+        "items": [
+            merge(
+                x,
+                {
+                    "route": transform_route(x),
+                    "description": frappe.utils.strip_html_tags(
+                        x.get("description") or ""
+                    ),
+                },
+                get_rates(x.get("name")),
+            )
+            for x in items
+        ]
+    }
+
+
+_get_item_prices = compose(
+    valmap(excepts(StopIteration, first, lambda _: {})),
+    groupby("item_code"),
+    lambda price_list, items: frappe.db.sql(
+        """
+            SELECT item_code, price_list_rate
+            FROM `tabItem Price`
+            WHERE price_list = %(price_list)s AND item_code IN %(item_codes)s
+        """,
+        values={"price_list": price_list, "item_codes": [x.get("name") for x in items]},
+        as_dict=1,
+    )
+    if price_list
+    else {},
+)
+
+
+def _rate_getter(price_list, item_prices):
+    def fn(item_code):
+        price_obj = get_price(
+            item_code,
+            price_list,
+            customer_group=frappe.get_cached_value(
+                "Selling Settings", None, "customer_group"
+            ),
+            company=frappe.defaults.get_global_default("company"),
+        )
+        price_list_rate = item_prices.get(item_code, {}).get("price_list_rate")
+        item_price = price_obj.get("price_list_rate") or price_list_rate
+        return {
+            "price_list_rate": item_price,
+            "slashed_rate": price_list_rate if price_list_rate != item_price else None,
+        }
+
+    return fn
