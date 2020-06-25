@@ -1,5 +1,5 @@
 import frappe
-from toolz import keyfilter, curry, compose
+from toolz import keyfilter, curry, compose, excepts
 import sys, traceback
 
 
@@ -21,4 +21,7 @@ def handle_error(fn):
     return wrapper
 
 
-transform_route = compose(lambda x: x.replace("/", "__"), lambda x: x.get("route"))
+transform_route = compose(
+    excepts(AttributeError, lambda x: x.replace("/", "__"), lambda _: None),
+    lambda x: x.get("route"),
+)
