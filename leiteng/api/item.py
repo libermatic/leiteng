@@ -231,6 +231,40 @@ def get_recent_additions():
     }
 
 
+@frappe.whitelist(allow_guest=True)
+@handle_error
+def get_media(item_code):
+    def get_values(name):
+        return frappe.get_cached_value(
+            "Item",
+            name,
+            ["thumbnail", "image", "website_image", "slideshow"],
+            as_dict=1,
+        )
+
+    def get_slideshows(slideshow):
+        if not slideshow:
+            return None
+        doc = frappe.get_cached_doc("Website Slideshow", slideshow)
+        if not doc:
+            return None
+        return [x.get("image") for x in doc.slideshow_items if x.get("image")]
+
+    variant_of = frappe.get_cached_value("Item", item_code, "variant_of")
+    images = get_values(item_code,)
+    template_images = get_values(variant_of) if variant_of else {}
+
+    def get_image(field):
+        return images.get(field) or template_images.get(field)
+
+    return {
+        "thumbnail": get_image("thumbnail"),
+        "image": get_image("image"),
+        "website_image": get_image("website_image"),
+        "slideshow": get_slideshows(get_image("slideshow")),
+    }
+
+
 _get_item_prices = compose(
     valmap(excepts(StopIteration, first, lambda _: {})),
     groupby("item_code"),
@@ -269,3 +303,4 @@ def _rate_getter(price_list, item_prices):
         }
 
     return fn
+
