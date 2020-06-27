@@ -56,7 +56,7 @@ def create(token, partner_name, code, **kwargs):
                 },
                 address_args,
             )
-        ).insert()
+        ).insert(ignore_permissions=True)
 
     contact_args = pick(["mobile_no", "email_id"], kwargs)
     if contact_args:
@@ -76,7 +76,7 @@ def create(token, partner_name, code, **kwargs):
             contact.add_email(contact_args.get("email_id"), is_primary=True)
         if contact_args.get("mobile_no"):
             contact.add_phone(contact_args.get("mobile_no"), is_primary_mobile_no=True)
-        contact.insert()
+        contact.insert(ignore_permissions=True)
 
     doc = frappe.get_doc("Sales Partner", partner_id)
     doc.update(
@@ -87,7 +87,7 @@ def create(token, partner_name, code, **kwargs):
             "le_mobile_no": contact_args.get("mobile_no"),
         }
     )
-    doc.save()
+    doc.save(ignore_permissions=True)
     auth.set_custom_user_claims(uid, {"partner": True})
 
     frappe.set_user(session_user)
