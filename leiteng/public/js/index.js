@@ -3,7 +3,7 @@ import * as cscripts from './cscripts';
 
 import { get_doctype } from './cscripts/utils';
 
-const __version__ = '0.3.5';
+const __version__ = '0.3.6';
 
 frappe.provide('leiteng');
 
