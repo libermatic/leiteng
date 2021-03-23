@@ -7,7 +7,6 @@ from toolz.curried import (
     merge,
     compose,
     groupby,
-    concat,
     first,
     valmap,
     map,
