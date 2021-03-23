@@ -1,4 +1,4 @@
 frappe
 erpnext
 toolz
-firebase-admin
+firebase_admin==4.5.2
