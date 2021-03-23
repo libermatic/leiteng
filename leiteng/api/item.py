@@ -112,7 +112,11 @@ def get_items(page="1", field_filters=None, attribute_filters=None, search=None)
         unique,
         map(lambda x: x.get("name")),
         concat,
-        map(lambda x: get_child_nodes("Item Group", x) if x else []),
+        map(
+            lambda x: get_child_nodes("Item Group", x)
+            if x and frappe.db.exists("Item Group", x, cache=True)
+            else []
+        ),
     )
     get_other_fields = compose(
         valmap(excepts(StopIteration, first, lambda _: {})),
