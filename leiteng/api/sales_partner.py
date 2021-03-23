@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 import frappe
+from firebase_admin import auth
 from toolz.curried import merge, groupby, valmap, compose, concat, map, filter
 
-from leiteng.app import get_decoded_token, auth
+from leiteng.app import get_decoded_token, app
 from leiteng.utils import pick, handle_error
 
 
@@ -88,7 +89,7 @@ def create(token, partner_name, code, **kwargs):
         }
     )
     doc.save(ignore_permissions=True)
-    auth.set_custom_user_claims(uid, {"partner": True})
+    auth.set_custom_user_claims(uid, {"partner": True}, app=app)
 
     frappe.set_user(session_user)
     return pick(["name", "partner_name"], doc.as_dict())

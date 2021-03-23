@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import frappe
 import json
+from firebase_admin import auth
 from toolz.curried import (
     keyfilter,
     merge,
@@ -13,7 +14,7 @@ from toolz.curried import (
     filter,
 )
 
-from leiteng.app import get_decoded_token, auth
+from leiteng.app import get_decoded_token, app
 from leiteng.utils import pick, handle_error
 
 
@@ -81,7 +82,7 @@ def create(token, **kwargs):
             args,
         )
     ).insert()
-    auth.set_custom_user_claims(uid, {"customer": True})
+    auth.set_custom_user_claims(uid, {"customer": True}, app=app)
 
     frappe.set_user(session_user)
     return pick(["name", "customer_name"], doc.as_dict())
