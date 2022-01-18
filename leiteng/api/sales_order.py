@@ -2,11 +2,7 @@
 import frappe
 import json
 from erpnext.selling.doctype.sales_order.sales_order import make_delivery_note
-from toolz.curried import keyfilter, merge, groupby, compose
-
-
-from leiteng.app import get_decoded_token
-from leiteng.utils import pick
+from toolz.curried import groupby, compose
 
 
 @frappe.whitelist()

@@ -1,310 +1,108 @@
 # -*- coding: utf-8 -*-
 import frappe
-from functools import partial
-from toolz.curried import (
-    compose,
-    excepts,
-    first,
-    merge,
-    concat,
-    unique,
-    groupby,
-    valmap,
-    map,
-    filter,
-)
-from erpnext.portal.product_configurator.utils import get_products_for_website
-from erpnext.shopping_cart.product_info import get_product_info_for_website
-from erpnext.accounts.doctype.sales_invoice.pos import get_child_nodes
 from erpnext.utilities.product import get_price
 
-from leiteng.utils import handle_error, transform_route, pick
 
+@frappe.whitelist()
+def list_item_price_list_rates(item_codes):
+    _item_codes = frappe.parse_json(item_codes)
+    if not _item_codes:
+        return []
 
-@frappe.whitelist(allow_guest=True)
-@handle_error
-def get_item(route):
-    item_code = frappe.db.exists(
-        "Item", {"route": route.replace("__", "/"), "show_in_website": 1}
-    )
-    if not item_code:
-        frappe.throw(frappe._("Item does not exist at this route"))
-
-    doc = frappe.db.get_value(
-        "Item",
-        item_code,
-        fieldname=[
-            "name",
-            "item_name",
-            "item_group",
-            "has_variants",
-            "description",
-            "web_long_description",
-            "image",
-            "website_image",
-        ],
-        as_dict=1,
-    )
-
-    get_price_list_rate = compose(
-        lambda x: frappe.db.get_value(
-            "Item Price",
-            filters={"item_code": item_code, "price_list": x},
-            fieldname="price_list_rate",
-        )
-        if x
-        else None,
-        lambda: frappe.get_cached_value("Shopping Cart Settings", None, "price_list"),
-    )
-
-    return merge(
-        {"route": route},
-        doc,
-        {
-            "description": frappe.utils.strip_html_tags(doc.get("description") or ""),
-            "price_list_rate": get_price_list_rate(),
-        },
-    )
-
-
-@frappe.whitelist(allow_guest=True)
-@handle_error
-def get_product_info(route):
-    item_code = frappe.db.exists(
-        "Item", {"route": route.replace("__", "/"), "show_in_website": 1}
-    )
-    if not item_code:
-        frappe.throw(frappe._("Item does not exist at this route"))
-
-    item_for_website = get_product_info_for_website(item_code)
-    return {
-        "price": pick(
-            ["currency", "price_list_rate"],
-            item_for_website.get("product_info", {}).get("price", {}),
-        )
-    }
-
-
-@frappe.whitelist(allow_guest=True)
-@handle_error
-def get_related_items(route):
-    item_code = frappe.db.exists(
-        "Item", {"route": route.replace("__", "/"), "show_in_website": 1}
-    )
-    if not item_code:
-        frappe.throw(frappe._("Item does not exist at this route"))
-
-    item_group = frappe.get_cached_value("Item", item_code, "item_group")
-    result = get_items(field_filters={"item_group": [item_group]})
-    return [x for x in result.get("items") if x.get("name") != item_code]
-
-
-@frappe.whitelist(allow_guest=True)
-@handle_error
-def get_items(page="1", field_filters=None, attribute_filters=None, search=None):
-    other_fieldnames = ["item_group", "thumbnail", "has_variants"]
-    price_list = frappe.db.get_single_value("Shopping Cart Settings", "price_list")
-    products_per_page = frappe.db.get_single_value(
-        "Products Settings", "products_per_page"
-    )
-    get_item_groups = compose(
-        list,
-        unique,
-        map(lambda x: x.get("name")),
-        concat,
-        map(
-            lambda x: get_child_nodes("Item Group", x)
-            if x and frappe.db.exists("Item Group", x, cache=True)
-            else []
-        ),
-    )
-    get_other_fields = compose(
-        valmap(excepts(StopIteration, first, lambda _: {})),
-        groupby("name"),
-        lambda item_codes: frappe.db.sql(
-            """
-                SELECT name, {other_fieldnames}
-                FROM `tabItem`
-                WHERE name IN %(item_codes)s
-            """.format(
-                other_fieldnames=", ".join(other_fieldnames)
+    return frappe.db.get_list(
+        "Item Price",
+        fields=["item_code", "price_list_rate"],
+        filters={
+            "item_code": ("in", _item_codes),
+            "selling": 1,
+            "price_list": frappe.db.get_single_value(
+                "Shopping Cart Settings", "price_list"
             ),
-            values={"item_codes": item_codes},
-            as_dict=1,
-        ),
-        lambda items: [x.get("name") for x in items],
+            "ifnull(valid_from, '2000-01-01')": ("<", frappe.utils.today()),
+            "ifnull(valid_upto, '2100-01-01')": (">", frappe.utils.today()),
+        },
+        order_by="valid_from desc",
     )
 
-    get_page_count = compose(
-        lambda x: frappe.utils.ceil(x[0][0] / products_per_page),
-        lambda x: frappe.db.sql(
-            """
-                SELECT COUNT(name) FROM `tabItem` WHERE
-                    show_in_website = 1 AND
-                    item_group IN %(item_groups)s
-            """,
-            values={"item_groups": x},
-        ),
-    )
 
-    field_dict = (
-        frappe.parse_json(field_filters)
-        if isinstance(field_filters, str)
-        else field_filters
-    ) or {}
-    item_groups = (
-        get_item_groups(field_dict.get("item_group"))
-        if field_dict.get("item_group")
-        else None
-    )
+@frappe.whitelist()
+def list_item_rates(item_codes):
+    _item_codes = frappe.parse_json(item_codes)
+    if not _item_codes:
+        return []
 
-    frappe.form_dict.start = (frappe.utils.cint(page) - 1) * products_per_page
-    items = get_products_for_website(
-        field_filters=merge(
-            field_dict, {"item_group": item_groups} if item_groups else {}
-        ),
-        attribute_filters=frappe.parse_json(attribute_filters),
-        search=search,
-    )
-    other_fields = get_other_fields(items) if items else {}
-    item_prices = _get_item_prices(price_list, items) if items else {}
-
-    get_rates = _rate_getter(price_list, item_prices)
-
-    return {
-        "page_count": get_page_count(item_groups) if item_groups else 0,
-        "items": [
-            merge(
-                x,
-                {
-                    "route": transform_route(x),
-                    "description": frappe.utils.strip_html_tags(
-                        x.get("description") or ""
-                    ),
-                },
-                get_rates(x.get("name")),
-                {
-                    k: other_fields.get(x.get("name"), {}).get(k)
-                    for k in other_fieldnames
-                },
-            )
-            for x in items
-        ],
-    }
-
-
-@frappe.whitelist(allow_guest=True)
-@handle_error
-def get_recent_additions():
     price_list = frappe.db.get_single_value("Shopping Cart Settings", "price_list")
-    products_per_page = frappe.db.get_single_value(
-        "Products Settings", "products_per_page"
-    )
+    customer_group = frappe.db.get_single_value("Selling Settings", "customer_group")
+    company = frappe.db.get_single_value("Shopping Cart Settings", "company")
 
-    items = frappe.db.sql(
-        """
-            SELECT
-                name, item_name, item_group, route, has_variants,
-                thumbnail, image, website_image,
-                description, web_long_description
-            FROM `tabItem`
-            WHERE show_in_website = 1
-            ORDER BY modified DESC
-            LIMIT %(products_per_page)s
-        """,
-        values={"products_per_page": products_per_page},
-        as_dict=1,
-    )
-    item_prices = _get_item_prices(price_list, items) if items else {}
-    get_rates = _rate_getter(price_list, item_prices)
-
-    return {
-        "items": [
-            merge(
-                x,
-                {
-                    "route": transform_route(x),
-                    "description": frappe.utils.strip_html_tags(
-                        x.get("description") or ""
-                    ),
-                },
-                get_rates(x.get("name")),
-            )
-            for x in items
-        ]
-    }
-
-
-@frappe.whitelist(allow_guest=True)
-@handle_error
-def get_media(item_code):
-    def get_values(name):
-        return frappe.get_cached_value(
-            "Item",
-            name,
-            ["thumbnail", "image", "website_image", "slideshow"],
-            as_dict=1,
-        )
-
-    def get_slideshows(slideshow):
-        if not slideshow:
-            return None
-        doc = frappe.get_cached_doc("Website Slideshow", slideshow)
-        if not doc:
-            return None
-        return [x.get("image") for x in doc.slideshow_items if x.get("image")]
-
-    variant_of = frappe.get_cached_value("Item", item_code, "variant_of")
-    images = get_values(item_code,)
-    template_images = get_values(variant_of) if variant_of else {}
-
-    def get_image(field):
-        return images.get(field) or template_images.get(field)
-
-    return {
-        "thumbnail": get_image("thumbnail"),
-        "image": get_image("image"),
-        "website_image": get_image("website_image"),
-        "slideshow": get_slideshows(get_image("slideshow")),
-    }
-
-
-_get_item_prices = compose(
-    valmap(excepts(StopIteration, first, lambda _: {})),
-    groupby("item_code"),
-    lambda price_list, items: frappe.db.sql(
-        """
-            SELECT item_code, price_list_rate
-            FROM `tabItem Price`
-            WHERE price_list = %(price_list)s AND item_code IN %(item_codes)s
-        """,
-        values={"price_list": price_list, "item_codes": [x.get("name") for x in items]},
-        as_dict=1,
-    )
-    if price_list
-    else {},
-)
-
-
-def _rate_getter(price_list, item_prices):
-    def fn(item_code):
-        price_obj = (
+    def get_rate(item_code):
+        price = (
             get_price(
                 item_code,
                 price_list,
-                customer_group=frappe.get_cached_value(
-                    "Selling Settings", None, "customer_group"
-                ),
-                company=frappe.defaults.get_global_default("company"),
+                customer_group=customer_group,
+                company=company,
             )
             or {}
         )
-        price_list_rate = item_prices.get(item_code, {}).get("price_list_rate")
-        item_price = price_obj.get("price_list_rate") or price_list_rate
-        return {
-            "price_list_rate": item_price,
-            "slashed_rate": price_list_rate if price_list_rate != item_price else None,
-        }
+        return price.get("price_list_rate")
 
-    return fn
+    return [
+        {"item_code": item_code, "rate": get_rate(item_code)}
+        for item_code in _item_codes
+    ]
 
+
+@frappe.whitelist()
+def list_item_stock_qtys(item_codes):
+    _item_codes = frappe.parse_json(item_codes)
+    if not _item_codes:
+        return []
+
+    tree = frappe.db.get_value(
+        "Warehouse",
+        frappe.db.get_single_value("Ahong eCommerce Settings", "warehouse"),
+        fieldname=["lft", "rgt"],
+    )
+
+    if not tree:
+        return []
+
+    warehouses = [
+        x
+        for (x,) in frappe.get_all(
+            "Warehouse",
+            filters={
+                "lft": (">=", tree[0]),
+                "rgt": ("<=", tree[1]),
+            },
+            as_list=1,
+        )
+    ]
+    if not warehouses:
+        return []
+
+    return frappe.db.sql(
+        """
+            SELECT
+                b.item_code AS item_code,
+                GREATEST(
+                    SUM(
+                        b.actual_qty - b.reserved_qty - b.reserved_qty_for_production - b.reserved_qty_for_sub_contract
+                    ),
+                    0
+                ) / IFNULL(C.conversion_factor, 1) AS stock_qty
+            FROM `tabBin` AS b
+            INNER JOIN `tabItem` AS i
+                ON b.item_code = i.item_code
+            LEFT JOIN `tabUOM Conversion Detail` C
+                ON i.sales_uom = C.uom AND C.parent = i.item_code
+            WHERE b.item_code IN %(item_codes)s AND b.warehouse in %(warehouses)s
+            GROUP BY b.item_code
+        """,
+        values={
+            "item_codes": _item_codes,
+            "warehouses": warehouses,
+        },
+        as_dict=1,
+    )
