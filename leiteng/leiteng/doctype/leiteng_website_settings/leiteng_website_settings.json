@@ -4,7 +4,6 @@
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
-  "user",
   "slideshow",
   "column_break_2",
   "allcat_groups",
@@ -21,14 +20,6 @@
    "fieldtype": "Table",
    "label": "Item Groups to show in <strong>All Categories</strong>.",
    "options": "Website Item Group"
-  },
-  {
-   "fieldname": "user",
-   "fieldtype": "Link",
-   "in_list_view": 1,
-   "label": "Webapp User",
-   "options": "User",
-   "reqd": 1
   },
   {
    "fieldname": "column_break_2",
@@ -76,7 +67,7 @@
   }
  ],
  "issingle": 1,
- "modified": "2020-06-20 01:08:41.097204",
+ "modified": "2022-01-19 16:44:19.143994",
  "modified_by": "Administrator",
  "module": "Leiteng",
  "name": "Leiteng Website Settings",
