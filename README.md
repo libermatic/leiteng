@@ -1,6 +1,8 @@
 ## Leiteng
 
-Leiteng Backend
+[DEPRECATED] Leiteng Backend
+
+Customizations moved to in-site **Server Script** and **Custom Script**.
 
 ### Settings
 
